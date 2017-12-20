@@ -177,7 +177,7 @@ namespace EFORM
 
             dbEntity.State = EntityState.Unchanged;
             dbEntity.Property(nameof(UserInfo.UserName)).IsModified = true;
-                
+
             //手动关闭EF对实体验证
             db.Configuration.ValidateOnSaveEnabled = false;
 
@@ -185,6 +185,105 @@ namespace EFORM
             db.SaveChanges();
 
             MessageBox.Show("数据编辑成功");
+        }
+        #endregion
+
+        #region 6.0 导航属性中的延迟加载特点和缓存特点
+        private void button6_Click(object sender, EventArgs e)
+        {
+            WorkRecordDBEntities db = new WorkRecordDBEntities();
+
+            var list = db.LogInfo.Where(m => m.Id < 3);
+
+            foreach (var item in list)
+            {
+                Console.WriteLine(item.LogContent + ":的主人是：" + item.UserInfo.UserName);
+            }
+        }
+
+        #endregion
+
+        #region 7.0 联表查询的两种方式
+        private void button7_Click(object sender, EventArgs e)
+        {
+            WorkRecordDBEntities db = new WorkRecordDBEntities();
+
+            #region 7.0.1 连接查询的方式1、生成INNER JOIN
+            //var sql = db.LogInfo.Join(
+            // db.UserInfo,
+            // l => l.UserId,
+            // u => u.Id,
+            // (l, u) => new { l.LogContent, u.UserName }
+            // );
+
+            //var list = sql.ToList();
+
+            //list.ForEach(m => Console.WriteLine(m.UserName + "---" + m.LogContent));
+            #endregion
+
+            #region 7.0.2 连表查询方式2、Include() 产生 LEFT OUTER JOIN
+            var list = db.LogInfo.Include(nameof(UserInfo)).Where(c => c.Id < 5).ToList();
+
+            list.ForEach(c => Console.WriteLine(c.LogContent + "-" + c.UserInfo.UserName));
+            #endregion
+        }
+        #endregion
+
+        #region 8.0 利用skip().take()分页
+
+        private void button8_Click(object sender, EventArgs e)
+        {
+            WorkRecordDBEntities db = new WorkRecordDBEntities();
+
+            int pageIndex = 1;
+            int pageSize = 5;
+            int skipCount = (pageIndex - 1) * pageSize;
+
+            //注意点：在EF中使用Skip()方法之前必须先进行排序操作
+            db.UserInfo.OrderBy(u => u.Id)
+                .Skip(skipCount)
+                .Take(pageSize).ToList()
+                .ForEach(c => Console.WriteLine(c.UserName + "-" + c.Email));
+        }
+        #endregion
+
+        #region 9.0 EF执行Sql语句（不推荐使用）
+
+        private void button9_Click(object sender, EventArgs e)
+        {
+            WorkRecordDBEntities db = new WorkRecordDBEntities();
+
+            string sql = "UPDATE UserInfo SET UserName='我要学习Python' WHERE ID = 1";
+
+            db.Database.ExecuteSqlCommand(sql);
+
+            MessageBox.Show("数据更新成功");
+        }
+        #endregion
+
+        #region 10.0 不跟踪查询 AsNoTracking（）
+
+        private void button10_Click(object sender, EventArgs e)
+        {
+            WorkRecordDBEntities db = new WorkRecordDBEntities();
+
+            var list = db.UserInfo.AsNoTracking().Where(u => u.Id < 100).ToList();
+
+            list.ForEach(u => Console.WriteLine(u.UserName + "----" + u.Email));
+        }
+        #endregion
+
+        #region 11.0 EF上下文容器中的Set<T>泛型方法的作用
+
+        private void button11_Click(object sender, EventArgs e)
+        {
+            WorkRecordDBEntities db = new WorkRecordDBEntities();
+
+            db.UserInfo.FirstOrDefault();
+
+            //当db中没有UserInfo的DbSet<UserInfo>对象的时候，就无法操作数据表UserInfo
+            //解决方案：可以使用db.Set<UserInfo> 动态实例化DbSet<UserInfo>对象//等价于 db.GroupInfo
+            var model = db.Set<UserInfo>().FirstOrDefault();
         }
         #endregion
 
